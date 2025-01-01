@@ -6,6 +6,8 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
+#define HEADER_HEIGHT 50
+
 // Constants for calendar grid
 #define CELL_WIDTH 100
 #define CELL_HEIGHT 50
@@ -19,11 +21,15 @@ int currentYear;
 // Window Procedure Declaration
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void DrawCalendar(HDC hdc);
+void DrawHeader(HDC hdc);
 void GetCurrentDate(int* year, int* month);
 int GetDaysInMonth(int year, int month);
 int GetFirstDayOfMonth(int year, int month);
 
-
+/**
+ * Entry point for the Windows application.
+ * Registers a window class, creates a window, and runs the message loop.
+ */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     const char CLASS_NAME[] = "CalendarWindow";
@@ -67,7 +73,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     return 0;
 }
 
-
+/**
+ * Window procedure for handling messages sent to the window.
+ * Processes paint, close, and resize events.
+ */
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch(uMsg)
@@ -88,6 +97,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
+
+            // Draw the header
+            DrawHeader(hdc);
 
             // Draw the calendar
             DrawCalendar(hdc);
@@ -112,14 +124,16 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-
+/**
+ * Draws the calendar grid and fills it with day names and the dates of the current month.
+ * @param hdc The handle to the device context used for drawing.
+ */
 void DrawCalendar(HDC hdc) {
-    // Day names
     const char* dayNames[GRID_COLS] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
 
     // Draw day names
     for (int col = 0; col < GRID_COLS; col++) {
-        RECT rect = {col * CELL_WIDTH, 0, (col + 1) * CELL_WIDTH, CELL_HEIGHT};
+        RECT rect = {col * CELL_WIDTH, HEADER_HEIGHT, (col + 1) * CELL_WIDTH, HEADER_HEIGHT + CELL_HEIGHT};
         DrawText(hdc, dayNames[col], -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
 
@@ -129,13 +143,18 @@ void DrawCalendar(HDC hdc) {
 
     // Draw the dates
     int day = 1;
-    for (int row = 1; row < GRID_ROWS; row++) {
+    for (int row = 1; row <= GRID_ROWS; row++) { // Rows start from 1 for day names
         for (int col = 0; col < GRID_COLS; col++) {
             if ((row == 1 && col < firstDay) || day > daysInMonth) {
                 continue;
             }
 
-            RECT rect = {col * CELL_WIDTH, row * CELL_HEIGHT, (col + 1) * CELL_WIDTH, (row + 1) * CELL_HEIGHT};
+            RECT rect = {
+                col * CELL_WIDTH,
+                HEADER_HEIGHT + row * CELL_HEIGHT,
+                (col + 1) * CELL_WIDTH,
+                HEADER_HEIGHT + (row + 1) * CELL_HEIGHT
+            };
             char dayText[3];
             sprintf(dayText, "%d", day);
             DrawText(hdc, dayText, -1, &rect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
@@ -145,35 +164,78 @@ void DrawCalendar(HDC hdc) {
     }
 
     // Draw grid lines
-    for (int row = 0; row <= GRID_ROWS; row++) {
-        MoveToEx(hdc, 0, row * CELL_HEIGHT, NULL);
-        LineTo(hdc, GRID_COLS * CELL_WIDTH, row * CELL_HEIGHT);
+    for (int row = 0; row <= GRID_ROWS + 1; row++) {
+        MoveToEx(hdc, 0, HEADER_HEIGHT + row * CELL_HEIGHT, NULL);
+        LineTo(hdc, GRID_COLS * CELL_WIDTH, HEADER_HEIGHT + row * CELL_HEIGHT);
     }
     for (int col = 0; col <= GRID_COLS; col++) {
-        MoveToEx(hdc, col * CELL_WIDTH, 0, NULL);
-        LineTo(hdc, col * CELL_WIDTH, GRID_ROWS * CELL_HEIGHT);
+        MoveToEx(hdc, col * CELL_WIDTH, HEADER_HEIGHT, NULL);
+        LineTo(hdc, col * CELL_WIDTH, HEADER_HEIGHT + (GRID_ROWS + 1) * CELL_HEIGHT);
     }
 }
 
-void GetCurrentDate(int* year, int* month) {
+/**
+ * Draws the header above the calendar, showing the current month and year.
+ * Allows navigation between months (future implementation can add buttons or other controls).
+ * @param hdc The handle to the device context used for drawing.
+ */
+void DrawHeader(HDC hdc)
+{
+    // Buffer for the header text
+    char headerText[100];
+
+    // Format the header with the current month and year
+    const char* months[] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+    sprintf(headerText, "%s %d", months[currentMonth - 1], currentYear);
+
+    // Define the rectangle for the header
+    RECT headerRect = {0, 0, GRID_COLS * CELL_WIDTH, 50};
+
+    // Draw the header text
+    DrawText(hdc, headerText, -1, &headerRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+}
+
+/**
+ * Retrieves the current year and month.
+ * @param year Pointer to an integer to store the current year.
+ * @param month Pointer to an integer to store the current month.
+ */
+void GetCurrentDate(int* year, int* month)
+{
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     *year = tm.tm_year + 1900;
     *month = tm.tm_mon + 1;
 }
 
-int GetDaysInMonth(int year, int month) {
-    if (month == 2) {
+/**
+ * Calculates the number of days in a given month for a given year.
+ * @param year The year.
+ * @param month The month (1-12).
+ * @return The number of days in the month.
+ */
+int GetDaysInMonth(int year, int month)
+{
+    if (month == 2)
+    {
+        // Check for leap year
         return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) ? 29 : 28;
     }
     return (month == 4 || month == 6 || month == 9 || month == 11) ? 30 : 31;
 }
 
-int GetFirstDayOfMonth(int year, int month) {
+/**
+ * Determines the day of the week for the first day of a given month.
+ * @param year The year.
+ * @param month The month (1-12).
+ * @return The day of the week (0 = Sunday, 6 = Saturday).
+ */
+int GetFirstDayOfMonth(int year, int month)
+{
     struct tm firstDay = {0};
-    firstDay.tm_year = year - 1900;
-    firstDay.tm_mon = month - 1;
-    firstDay.tm_mday = 1;
+    firstDay.tm_year = year - 1900; // tm_year is years since 1900
+    firstDay.tm_mon = month - 1;    // tm_mon is 0-based
+    firstDay.tm_mday = 1;           // First day of the month
     mktime(&firstDay);
     return firstDay.tm_wday;
 }
