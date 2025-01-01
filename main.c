@@ -1,3 +1,33 @@
+/**
+ * Simple Calendar Application
+ * ----------------------------
+ * This program is a basic calendar application built using the C programming language
+ * and the Windows API (WinAPI). The purpose of the application is to display a calendar
+ * for the current month and year, allowing users to view dates in a grid format.
+ *
+ * Features:
+ * - Displays the current month and year in a header at the top of the window.
+ * - Renders a grid for the calendar with days of the week and dates.
+ * - Supports a fixed-size window for simplicity and clarity.
+ *
+ * Design Highlights:
+ * - The calendar grid automatically adjusts to display the correct number of days
+ *   in the month and aligns the first day to the appropriate weekday.
+ * - The header provides an overview of the displayed month and year, with room for
+ *   future enhancements such as navigation controls.
+ * - The program avoids wide-character types (e.g., wchar_t) for simplicity, using
+ *   standard C strings instead.
+ *
+ * Usage:
+ * This program is intended as an educational example for learning WinAPI programming
+ * and working with dates in C. It can be extended with additional features such as
+ * user interaction, date selection, or event scheduling.
+ *
+ * Author: Korolkov Ivan
+ * Date: 31.12.2024
+ */
+
+
 #include <windows.h>
 #include <stdio.h>
 #include <time.h>
